@@ -1,0 +1,33 @@
+service: url-shortener-nestjs
+
+plugins:
+  - serverless-plugin-typescript
+  - serverless-plugin-optimize
+  - serverless-offline
+
+provider:
+  name: aws
+  region: eu-central-1
+  runtime: nodejs18.x
+  environment:
+    DYNAMODB_TABLE: UrlShortenerTable
+    REDIS_ENDPOINT: url-shortener-redis.7zvz8z.0001.euc1.cache.amazonaws.com
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:*
+        - logs:CreateLogGroup
+        - logs:CreateLogStream
+        - logs:PutLogEvents
+      Resource: "*"
+
+functions:
+  main:
+    handler: src/lambda.handler
+    events:
+      - http:
+          method: ANY
+          path: /
+      - http:
+          method: ANY
+          path: '{proxy+}'
