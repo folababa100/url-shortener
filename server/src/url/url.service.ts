@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 export class UrlService {
   private docClient = new AWS.DynamoDB.DocumentClient();
   private redisClient = new IORedis(process.env.REDIS_ENDPOINT);
-  private tableName = process.env.DYNAMODB_TABLE_NAME;
+  private tableName = process.env.DYNAMODB_TABLE;
 
   async shortenUrl(originalUrl: string): Promise<string> {
     const id = uuidv4().slice(0, 8); // Simple example, consider a more collision-resistant approach

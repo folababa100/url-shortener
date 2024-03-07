@@ -9,9 +9,6 @@ provider:
   name: aws
   region: eu-central-1
   runtime: nodejs18.x
-  environment:
-    DYNAMODB_TABLE: UrlShortenerTable
-    REDIS_ENDPOINT: url-shortener-redis.7zvz8z.0001.euc1.cache.amazonaws.com
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -31,3 +28,19 @@ functions:
       - http:
           method: ANY
           path: '{proxy+}'
+resources:
+  Resources:
+    UrlShortenerTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: UrlShortenerTable
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+custom:
+  serverless-offline:
+    httpPort: 3000
