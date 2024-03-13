@@ -4,9 +4,9 @@ import {
   Post,
   Body,
   Get,
-  Param,
   Redirect,
   Delete,
+  Param,
 } from '@nestjs/common';
 import { UrlService } from './url.service';
 
@@ -25,8 +25,6 @@ export class UrlController {
     const url = await this.urlService.getUrlAndIncrementStats(id);
     return { url, statusCode: 302 };
   }
-
-  // Implement DELETE and stats endpoints similarly
 
   @Delete('/:id')
   async delete(@Param('id') id: string) {

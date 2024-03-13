@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
 import AWS from 'aws-sdk';
 import IORedis from 'ioredis';
-import { v4 as uuidv4 } from 'uuid';
+
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { customAlphabet } from 'nanoid';
 
 @Injectable()
 export class UrlService {
@@ -10,7 +11,12 @@ export class UrlService {
   private tableName = process.env.DYNAMODB_TABLE;
 
   async shortenUrl(originalUrl: string): Promise<string> {
-    const id = uuidv4().slice(0, 8); // Simple example, consider a more collision-resistant approach
+    const nanoid = customAlphabet(
+      '1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
+      6,
+    );
+
+    const id = nanoid();
     const shortUrl = `${process.env.BASE_URL}/${id}`;
 
     await this.docClient
@@ -29,7 +35,7 @@ export class UrlService {
     // Try to get URL from Redis
     let url = await this.redisClient.get(id);
     if (url) {
-      await this.incrementStats(id); // Increment stats in both Redis and DynamoDB
+      await this.incrementStats(id);
       return url;
     }
 
