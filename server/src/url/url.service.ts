@@ -1,5 +1,4 @@
 import AWS from 'aws-sdk';
-// Removed import IORedis from 'ioredis';
 
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { customAlphabet } from 'nanoid';
@@ -7,7 +6,6 @@ import { customAlphabet } from 'nanoid';
 @Injectable()
 export class UrlService {
   private docClient = new AWS.DynamoDB.DocumentClient();
-  // Removed Redis client initialization
   private tableName = process.env.DYNAMODB_TABLE;
 
   async shortenUrl(originalUrl: string): Promise<string> {
@@ -25,15 +23,10 @@ export class UrlService {
         Item: { id, originalUrl },
       })
       .promise();
-
-    // Removed Redis set operation
-
     return shortUrl;
   }
 
   async getUrlAndIncrementStats(id: string): Promise<string> {
-    // Removed Redis fetch
-
     const result = await this.docClient
       .get({
         TableName: this.tableName,
@@ -44,7 +37,6 @@ export class UrlService {
     const url = result.Item?.originalUrl;
     if (!url) throw new NotFoundException('URL not found');
 
-    // Removed caching URL back in Redis and incrementing stats in Redis
     await this.incrementStats(id);
 
     return url;
@@ -57,18 +49,13 @@ export class UrlService {
         Key: { id },
       })
       .promise();
-    // Removed Redis delete operations
   }
 
-  async getUrlStats(id: string): Promise<{ hits: number }> {
-    // Since Redis was handling hit counts, you might need to redesign this function.
-    // For now, returning an indicative response as it can't be directly migrated without Redis.
-    return { hits: 0 };
+  async getUrlStats(id: string): Promise<{ hits: number; id: string }> {
+    return { hits: 0, id };
   }
 
   private async incrementStats(id: string): Promise<void> {
-    // Removed Redis increment operation
-
     // Increment in DynamoDB
     await this.docClient
       .update({
