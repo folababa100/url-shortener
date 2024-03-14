@@ -26,10 +26,12 @@ export class UrlService {
     );
     const id = nanoid();
 
+    const createdAt = new Date().toISOString();
+
     await this.docClient.send(
       new PutCommand({
         TableName: this.tableName,
-        Item: { id, originalUrl },
+        Item: { id, originalUrl, createdAt },
       }),
     );
 
