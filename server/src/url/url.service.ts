@@ -15,7 +15,7 @@ export class UrlService {
     region: process.env.AWS_REGION,
   });
   private docClient = DynamoDBDocumentClient.from(this.ddbClient);
-  private tableName = process.env.DYNAMODB_TABLE;
+  private tableName = process.env.STATS_TABLE;
 
   async shortenUrl(
     originalUrl: string,

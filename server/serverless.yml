@@ -33,7 +33,18 @@ resources:
     UrlShortenerTable:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: UrlShortenerTable
+        TableName: LinkTable
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+    StatsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: StatsTable
         AttributeDefinitions:
           - AttributeName: id
             AttributeType: S
