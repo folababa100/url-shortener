@@ -1,38 +1,48 @@
-import AWS from 'aws-sdk';
-
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import {
+  DynamoDBDocumentClient,
+  PutCommand,
+  GetCommand,
+  DeleteCommand,
+  UpdateCommand,
+} from '@aws-sdk/lib-dynamodb';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { customAlphabet } from 'nanoid';
 
 @Injectable()
 export class UrlService {
-  private docClient = new AWS.DynamoDB.DocumentClient();
+  private ddbClient = new DynamoDBClient({
+    region: process.env.AWS_REGION,
+  });
+  private docClient = DynamoDBDocumentClient.from(this.ddbClient);
   private tableName = process.env.DYNAMODB_TABLE;
 
-  async shortenUrl(originalUrl: string): Promise<string> {
+  async shortenUrl(
+    originalUrl: string,
+  ): Promise<{ message: string; id: string }> {
     const nanoid = customAlphabet(
       '1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
       6,
     );
-
     const id = nanoid();
-    const shortUrl = `${process.env.BASE_URL}/${id}`;
 
-    await this.docClient
-      .put({
+    await this.docClient.send(
+      new PutCommand({
         TableName: this.tableName,
         Item: { id, originalUrl },
-      })
-      .promise();
-    return shortUrl;
+      }),
+    );
+
+    return { message: 'URL shortened', id };
   }
 
   async getUrlAndIncrementStats(id: string): Promise<string> {
-    const result = await this.docClient
-      .get({
+    const result = await this.docClient.send(
+      new GetCommand({
         TableName: this.tableName,
         Key: { id },
-      })
-      .promise();
+      }),
+    );
 
     const url = result.Item?.originalUrl;
     if (!url) throw new NotFoundException('URL not found');
@@ -43,32 +53,44 @@ export class UrlService {
   }
 
   async deleteUrl(id: string): Promise<void> {
-    await this.docClient
-      .delete({
+    await this.docClient.send(
+      new DeleteCommand({
         TableName: this.tableName,
         Key: { id },
-      })
-      .promise();
+      }),
+    );
   }
 
   async getUrlStats(id: string): Promise<{ hits: number; id: string }> {
+    const result = await this.docClient.send(
+      new GetCommand({
+        TableName: this.tableName,
+        Key: { id },
+      }),
+    );
+
+    const visitCount = result.Item?.visitCount;
+
+    if (visitCount) {
+      return { hits: visitCount, id };
+    }
     return { hits: 0, id };
   }
 
   private async incrementStats(id: string): Promise<void> {
-    // Increment in DynamoDB
-    await this.docClient
-      .update({
+    await this.docClient.send(
+      new UpdateCommand({
         TableName: this.tableName,
         Key: { id },
         UpdateExpression:
           'set visitCount = if_not_exists(visitCount, :start) + :inc',
         ExpressionAttributeValues: {
           ':inc': 1,
+
           ':start': 0,
         },
         ReturnValues: 'UPDATED_NEW',
-      })
-      .promise();
+      }),
+    );
   }
 }

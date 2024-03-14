@@ -9,8 +9,6 @@ provider:
   name: aws
   region: eu-central-1
   runtime: nodejs18.x
-  environment:
-    DYNAMODB_TABLE: UrlShortenerTable
   iamRoleStatements:
     - Effect: Allow
       Action:
