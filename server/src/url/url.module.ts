@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
 import { UrlService } from './url.service';
 import { UrlController } from './url.controller';
+import { StatsModule } from '../stats/stats.module';
 
 @Module({
+  imports: [StatsModule],
   providers: [UrlService],
   controllers: [UrlController],
 })

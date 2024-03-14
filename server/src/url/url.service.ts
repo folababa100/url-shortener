@@ -4,13 +4,15 @@ import {
   PutCommand,
   GetCommand,
   DeleteCommand,
-  UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { customAlphabet } from 'nanoid';
 
+import { StatsService } from '../stats/stats.service';
+
 @Injectable()
 export class UrlService {
+  constructor(private statsService: StatsService) {}
   private ddbClient = new DynamoDBClient({
     region: process.env.AWS_REGION,
   });
@@ -49,7 +51,7 @@ export class UrlService {
     const url = result.Item?.originalUrl;
     if (!url) throw new NotFoundException('URL not found');
 
-    await this.incrementStats(id);
+    await this.statsService.incrementStat(id, 'web');
 
     return url;
   }
@@ -77,22 +79,5 @@ export class UrlService {
       return { hits: visitCount, id };
     }
     return { hits: 0, id };
-  }
-
-  private async incrementStats(id: string): Promise<void> {
-    await this.docClient.send(
-      new UpdateCommand({
-        TableName: this.tableName,
-        Key: { id },
-        UpdateExpression:
-          'set visitCount = if_not_exists(visitCount, :start) + :inc',
-        ExpressionAttributeValues: {
-          ':inc': 1,
-
-          ':start': 0,
-        },
-        ReturnValues: 'UPDATED_NEW',
-      }),
-    );
   }
 }
