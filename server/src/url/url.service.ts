@@ -17,7 +17,7 @@ export class UrlService {
     region: process.env.AWS_REGION,
   });
   private docClient = DynamoDBDocumentClient.from(this.ddbClient);
-  private tableName = process.env.STATS_TABLE;
+  private tableName = process.env.LINK_TABLE;
 
   async shortenUrl(
     originalUrl: string,
@@ -40,7 +40,7 @@ export class UrlService {
     return { message: 'URL shortened', id };
   }
 
-  async getUrlAndIncrementStats(id: string): Promise<string> {
+  async getUrlAndIncrementStats(id: string, platform: string): Promise<string> {
     const result = await this.docClient.send(
       new GetCommand({
         TableName: this.tableName,
@@ -51,7 +51,7 @@ export class UrlService {
     const url = result.Item?.originalUrl;
     if (!url) throw new NotFoundException('URL not found');
 
-    await this.statsService.incrementStat(id, 'web');
+    await this.statsService.incrementStat(id, platform);
 
     return url;
   }

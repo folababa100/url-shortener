@@ -30,7 +30,7 @@ functions:
           path: '{proxy+}'
 resources:
   Resources:
-    UrlShortenerTable:
+    UrlLinkTable:
       Type: AWS::DynamoDB::Table
       Properties:
         TableName: LinkTable
@@ -41,16 +41,20 @@ resources:
           - AttributeName: id
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
-    StatsTable:
+    UrlStatsTable:
       Type: AWS::DynamoDB::Table
       Properties:
         TableName: StatsTable
         AttributeDefinitions:
-          - AttributeName: id
+          - AttributeName: linkId
+            AttributeType: S
+          - AttributeName: platformCreatedAtId
             AttributeType: S
         KeySchema:
-          - AttributeName: id
+          - AttributeName: linkId
             KeyType: HASH
+          - AttributeName: platformCreatedAtId
+            KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
 custom:
   serverless-offline:

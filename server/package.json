@@ -16,6 +16,7 @@
     "sls:deploy": "sls deploy",
     "sls:offline": "sls offline",
     "sls:package": "sls package",
+    "sls:remove": "sls remove",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",

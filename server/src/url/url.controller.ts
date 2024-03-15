@@ -7,6 +7,7 @@ import {
   Redirect,
   Delete,
   Param,
+  Query,
 } from '@nestjs/common';
 import { UrlService } from './url.service';
 
@@ -21,8 +22,11 @@ export class UrlController {
 
   @Get('/:id')
   @Redirect()
-  async redirect(@Param('id') id: string) {
-    const url = await this.urlService.getUrlAndIncrementStats(id);
+  async redirect(@Param('id') id: string, @Query('platform') platform: string) {
+    const url = await this.urlService.getUrlAndIncrementStats(
+      id,
+      platform ?? 'web',
+    );
     return { url, statusCode: 302 };
   }
 

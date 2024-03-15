@@ -32,45 +32,58 @@ export class StatsService {
         TableName: this.tableName,
         Item: {
           id,
-          hits: 0,
+          hits: 1,
           createdAt,
           linkId,
           platform,
+          platformCreatedAtId: `${platform}-${linkId}`,
         },
       }),
     );
   }
 
-  private async updateStat(id: string): Promise<void> {
+  private async updateStat(id: string, platform: string): Promise<void> {
     await this.docClient.send(
       new UpdateCommand({
         TableName: this.tableName,
-        Key: { linkId: id },
+        Key: { linkId: id, platformCreatedAtId: `${platform}-${id}` },
         UpdateExpression: 'ADD hits :inc',
         ExpressionAttributeValues: { ':inc': 1 },
       }),
     );
   }
 
-  async getUrlStat(id: string): Promise<{ id: string; hits: number }> {
+  async getUrlStat(
+    linkId: string,
+    platform: string,
+  ): Promise<{ id: string; hits: number } | null> {
     const result = await this.docClient.send(
       new GetCommand({
         TableName: this.tableName,
-        Key: { id },
+        Key: {
+          linkId,
+          platformCreatedAtId: `${platform}-${linkId}`,
+        },
       }),
     );
 
-    return {
-      id: result.Item?.id,
-      hits: result.Item?.hits,
-    };
+    const { id, hits } = result.Item ?? {};
+
+    if (id) {
+      return {
+        id,
+        hits,
+      };
+    }
+
+    return null;
   }
 
   async incrementStat(linkId: string, platform: string): Promise<void> {
     //   Find the stats item in the table and update or create it
-    const result = await this.getUrlStat(linkId);
-    if (result.id) {
-      await this.updateStat(linkId);
+    const result = await this.getUrlStat(linkId, platform);
+    if (result?.id) {
+      await this.updateStat(linkId, platform);
     } else {
       await this.createStat(linkId, platform);
     }
@@ -85,16 +98,13 @@ export class StatsService {
       }),
     );
 
-    const stats = findStats.Items;
-    if (stats) {
-      for (const stat of stats) {
-        await this.docClient.send(
-          new DeleteCommand({
-            TableName: this.tableName,
-            Key: { id: stat.id },
-          }),
-        );
-      }
+    for (const stat of findStats.Items || []) {
+      await this.docClient.send(
+        new DeleteCommand({
+          TableName: this.tableName,
+          Key: { id: stat.id },
+        }),
+      );
     }
   }
 }
