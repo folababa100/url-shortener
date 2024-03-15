@@ -32,7 +32,9 @@ export class UrlController {
 
   @Delete('/:id')
   async delete(@Param('id') id: string) {
-    return this.urlService.deleteUrl(id);
+    await this.urlService.deleteUrl(id);
+
+    return { message: 'URL deleted' };
   }
 
   @Get('/:id/stats')

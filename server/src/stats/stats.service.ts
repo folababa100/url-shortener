@@ -102,7 +102,7 @@ export class StatsService {
       await this.docClient.send(
         new DeleteCommand({
           TableName: this.tableName,
-          Key: { id: stat.id },
+          Key: { linkId, platformCreatedAtId: stat.platformCreatedAtId },
         }),
       );
     }
