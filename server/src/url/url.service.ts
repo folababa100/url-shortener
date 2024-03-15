@@ -63,6 +63,8 @@ export class UrlService {
         Key: { id },
       }),
     );
+
+    await this.statsService.deleteStats(id);
   }
 
   async getUrlStats(id: string): Promise<{ hits: number; id: string }> {
