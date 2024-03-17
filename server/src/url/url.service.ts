@@ -1,22 +1,16 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import {
-  DynamoDBDocumentClient,
-  PutCommand,
-  GetCommand,
-  DeleteCommand,
-} from '@aws-sdk/lib-dynamodb';
+import { PutCommand, GetCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { customAlphabet } from 'nanoid';
 
 import { StatsService } from '../stats/stats.service';
+import { DynamodbService } from 'src/common/dynamodb/dynamodb.service';
 
 @Injectable()
 export class UrlService {
-  constructor(private statsService: StatsService) {}
-  private ddbClient = new DynamoDBClient({
-    region: process.env.AWS_REGION,
-  });
-  private docClient = DynamoDBDocumentClient.from(this.ddbClient);
+  constructor(
+    private statsService: StatsService,
+    private dynamodbService: DynamodbService,
+  ) {}
   private tableName = process.env.LINK_TABLE;
 
   async shortenUrl(
@@ -30,7 +24,7 @@ export class UrlService {
 
     const createdAt = new Date().toISOString();
 
-    await this.docClient.send(
+    await this.dynamodbService.getDocClient().send(
       new PutCommand({
         TableName: this.tableName,
         Item: { id, originalUrl, createdAt },
@@ -41,7 +35,7 @@ export class UrlService {
   }
 
   async getUrlAndIncrementStats(id: string, platform: string): Promise<string> {
-    const result = await this.docClient.send(
+    const result = await this.dynamodbService.getDocClient().send(
       new GetCommand({
         TableName: this.tableName,
         Key: { id },
@@ -57,7 +51,7 @@ export class UrlService {
   }
 
   async deleteUrl(id: string): Promise<void> {
-    await this.docClient.send(
+    await this.dynamodbService.getDocClient().send(
       new DeleteCommand({
         TableName: this.tableName,
         Key: { id },
@@ -68,7 +62,7 @@ export class UrlService {
   }
 
   async getUrlStats(id: string): Promise<{ hits: number; id: string }> {
-    const result = await this.docClient.send(
+    const result = await this.dynamodbService.getDocClient().send(
       new GetCommand({
         TableName: this.tableName,
         Key: { id },

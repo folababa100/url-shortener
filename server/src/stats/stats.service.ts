@@ -1,7 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
-  DynamoDBDocumentClient,
   PutCommand,
   GetCommand,
   ScanCommand,
@@ -9,13 +7,11 @@ import {
   UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { customAlphabet } from 'nanoid';
+import { DynamodbService } from '../common/dynamodb/dynamodb.service';
 
 @Injectable()
 export class StatsService {
-  private ddbClient = new DynamoDBClient({
-    region: process.env.AWS_REGION,
-  });
-  private docClient = DynamoDBDocumentClient.from(this.ddbClient);
+  constructor(private dynamodbService: DynamodbService) {}
   private tableName = process.env.STATS_TABLE;
 
   private async createStat(linkId: string, platform: string): Promise<void> {
@@ -27,7 +23,7 @@ export class StatsService {
 
     const createdAt = new Date().toISOString();
 
-    await this.docClient.send(
+    await this.dynamodbService.getDocClient().send(
       new PutCommand({
         TableName: this.tableName,
         Item: {
@@ -43,7 +39,7 @@ export class StatsService {
   }
 
   private async updateStat(id: string, platform: string): Promise<void> {
-    await this.docClient.send(
+    await this.dynamodbService.getDocClient().send(
       new UpdateCommand({
         TableName: this.tableName,
         Key: { linkId: id, platformCreatedAtId: `${platform}-${id}` },
@@ -57,7 +53,7 @@ export class StatsService {
     linkId: string,
     platform: string,
   ): Promise<{ id: string; hits: number } | null> {
-    const result = await this.docClient.send(
+    const result = await this.dynamodbService.getDocClient().send(
       new GetCommand({
         TableName: this.tableName,
         Key: {
@@ -90,7 +86,7 @@ export class StatsService {
   }
 
   async deleteStats(linkId: string): Promise<void> {
-    const findStats = await this.docClient.send(
+    const findStats = await this.dynamodbService.getDocClient().send(
       new ScanCommand({
         TableName: this.tableName,
         FilterExpression: 'linkId = :linkId',
@@ -99,7 +95,7 @@ export class StatsService {
     );
 
     for (const stat of findStats.Items || []) {
-      await this.docClient.send(
+      await this.dynamodbService.getDocClient().send(
         new DeleteCommand({
           TableName: this.tableName,
           Key: { linkId, platformCreatedAtId: stat.platformCreatedAtId },
