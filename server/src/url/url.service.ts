@@ -3,28 +3,30 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { customAlphabet } from 'nanoid';
 
 import { StatsService } from '../stats/stats.service';
-import { DynamodbService } from 'src/common/dynamodb/dynamodb.service';
+import { DynamoService } from 'src/common/db/dynamo/dynamo.service';
 
 @Injectable()
 export class UrlService {
+  private readonly nanoid = customAlphabet(
+    '1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
+    6,
+  );
+  private readonly tableName = process.env.LINK_TABLE;
+  private readonly getDoc = this.dynamodbService.getDocClient();
+
   constructor(
     private statsService: StatsService,
-    private dynamodbService: DynamodbService,
+    private dynamodbService: DynamoService,
   ) {}
-  private tableName = process.env.LINK_TABLE;
 
   async shortenUrl(
     originalUrl: string,
   ): Promise<{ message: string; id: string }> {
-    const nanoid = customAlphabet(
-      '1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
-      6,
-    );
-    const id = nanoid();
+    const id = this.nanoid();
 
     const createdAt = new Date().toISOString();
 
-    await this.dynamodbService.getDocClient().send(
+    await this.getDoc.send(
       new PutCommand({
         TableName: this.tableName,
         Item: { id, originalUrl, createdAt },
@@ -35,7 +37,7 @@ export class UrlService {
   }
 
   async getUrlAndIncrementStats(id: string, platform: string): Promise<string> {
-    const result = await this.dynamodbService.getDocClient().send(
+    const result = await this.getDoc.send(
       new GetCommand({
         TableName: this.tableName,
         Key: { id },
@@ -51,7 +53,7 @@ export class UrlService {
   }
 
   async deleteUrl(id: string): Promise<void> {
-    await this.dynamodbService.getDocClient().send(
+    await this.getDoc.send(
       new DeleteCommand({
         TableName: this.tableName,
         Key: { id },
@@ -62,7 +64,7 @@ export class UrlService {
   }
 
   async getUrlStats(id: string): Promise<{ hits: number; id: string }> {
-    const result = await this.dynamodbService.getDocClient().send(
+    const result = await this.getDoc.send(
       new GetCommand({
         TableName: this.tableName,
         Key: { id },

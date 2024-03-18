@@ -2,10 +2,10 @@ import { Module } from '@nestjs/common';
 import { UrlService } from './url.service';
 import { UrlController } from './url.controller';
 import { StatsModule } from '../stats/stats.module';
-import { DynamodbModule } from '../common/dynamodb/dynamodb.module';
+import { DynamoModule } from 'src/common/db/dynamo/dynamo.module';
 
 @Module({
-  imports: [StatsModule, DynamodbModule],
+  imports: [StatsModule, DynamoModule],
   providers: [UrlService],
   controllers: [UrlController],
 })

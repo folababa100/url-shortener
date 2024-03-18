@@ -12,7 +12,7 @@ provider:
   iamRoleStatements:
     - Effect: Allow
       Action:
-        - dynamodb:*
+        - db:*
         - logs:CreateLogGroup
         - logs:CreateLogStream
         - logs:PutLogEvents

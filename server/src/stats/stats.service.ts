@@ -7,12 +7,14 @@ import {
   UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { customAlphabet } from 'nanoid';
-import { DynamodbService } from '../common/dynamodb/dynamodb.service';
+import { DynamoService } from 'src/common/db/dynamo/dynamo.service';
 
 @Injectable()
 export class StatsService {
-  constructor(private dynamodbService: DynamodbService) {}
-  private tableName = process.env.STATS_TABLE;
+  private readonly tableName = process.env.STATS_TABLE;
+  private readonly getDoc = this.dynamodbService.getDocClient();
+
+  constructor(private dynamodbService: DynamoService) {}
 
   private async createStat(linkId: string, platform: string): Promise<void> {
     const nanoid = customAlphabet(
@@ -23,7 +25,7 @@ export class StatsService {
 
     const createdAt = new Date().toISOString();
 
-    await this.dynamodbService.getDocClient().send(
+    await this.getDoc.send(
       new PutCommand({
         TableName: this.tableName,
         Item: {
@@ -39,7 +41,7 @@ export class StatsService {
   }
 
   private async updateStat(id: string, platform: string): Promise<void> {
-    await this.dynamodbService.getDocClient().send(
+    await this.getDoc.send(
       new UpdateCommand({
         TableName: this.tableName,
         Key: { linkId: id, platformCreatedAtId: `${platform}-${id}` },
@@ -53,7 +55,7 @@ export class StatsService {
     linkId: string,
     platform: string,
   ): Promise<{ id: string; hits: number } | null> {
-    const result = await this.dynamodbService.getDocClient().send(
+    const result = await this.getDoc.send(
       new GetCommand({
         TableName: this.tableName,
         Key: {
@@ -86,7 +88,7 @@ export class StatsService {
   }
 
   async deleteStats(linkId: string): Promise<void> {
-    const findStats = await this.dynamodbService.getDocClient().send(
+    const findStats = await this.getDoc.send(
       new ScanCommand({
         TableName: this.tableName,
         FilterExpression: 'linkId = :linkId',
@@ -95,7 +97,7 @@ export class StatsService {
     );
 
     for (const stat of findStats.Items || []) {
-      await this.dynamodbService.getDocClient().send(
+      await this.getDoc.send(
         new DeleteCommand({
           TableName: this.tableName,
           Key: { linkId, platformCreatedAtId: stat.platformCreatedAtId },

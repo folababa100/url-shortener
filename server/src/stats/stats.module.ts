@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { StatsService } from './stats.service';
-import { DynamodbModule } from '../common/dynamodb/dynamodb.module';
+import { DynamoModule } from 'src/common/db/dynamo/dynamo.module';
 
 @Module({
-  imports: [DynamodbModule],
+  imports: [DynamoModule],
   providers: [StatsService],
   exports: [StatsService],
 })
