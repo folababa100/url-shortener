@@ -1,8 +1,8 @@
-import { PutCommand, GetCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { customAlphabet } from 'nanoid';
 
 import { StatsService } from '../stats/stats.service';
+import { DynamoServiceFactory } from 'src/common/db/dynamo/dynamo.service.factory';
 import { DynamoService } from 'src/common/db/dynamo/dynamo.service';
 
 @Injectable()
@@ -11,13 +11,16 @@ export class UrlService {
     '1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
     6,
   );
-  private readonly tableName = process.env.LINK_TABLE;
-  private readonly getDoc = this.dynamodbService.getDocClient();
+  private dynamoService: DynamoService;
 
   constructor(
     private statsService: StatsService,
-    private dynamodbService: DynamoService,
-  ) {}
+    private dynamoServiceFactory: DynamoServiceFactory,
+  ) {
+    this.dynamoService = this.dynamoServiceFactory.createDynamoService(
+      process.env.LINK_TABLE,
+    );
+  }
 
   async shortenUrl(
     originalUrl: string,
@@ -26,23 +29,13 @@ export class UrlService {
 
     const createdAt = new Date().toISOString();
 
-    await this.getDoc.send(
-      new PutCommand({
-        TableName: this.tableName,
-        Item: { id, originalUrl, createdAt },
-      }),
-    );
+    await this.dynamoService.put({ id, originalUrl, createdAt });
 
     return { message: 'URL shortened', id };
   }
 
   async getUrlAndIncrementStats(id: string, platform: string): Promise<string> {
-    const result = await this.getDoc.send(
-      new GetCommand({
-        TableName: this.tableName,
-        Key: { id },
-      }),
-    );
+    const result = await this.dynamoService.get({ id });
 
     const url = result.Item?.originalUrl;
     if (!url) throw new NotFoundException('URL not found');
@@ -53,23 +46,12 @@ export class UrlService {
   }
 
   async deleteUrl(id: string): Promise<void> {
-    await this.getDoc.send(
-      new DeleteCommand({
-        TableName: this.tableName,
-        Key: { id },
-      }),
-    );
-
+    await this.dynamoService.delete({ id });
     await this.statsService.deleteStats(id);
   }
 
   async getUrlStats(id: string): Promise<{ hits: number; id: string }> {
-    const result = await this.getDoc.send(
-      new GetCommand({
-        TableName: this.tableName,
-        Key: { id },
-      }),
-    );
+    const result = await this.dynamoService.get({ id });
 
     const visitCount = result.Item?.visitCount;
 

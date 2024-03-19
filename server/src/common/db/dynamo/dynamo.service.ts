@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
-  DynamoDBDocumentClient,
-  PutCommand,
-  GetCommand,
   DeleteCommand,
+  DynamoDBDocumentClient,
+  GetCommand,
+  PutCommand,
+  ScanCommand,
+  UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 
 @Injectable()
@@ -22,10 +24,6 @@ export class DynamoService {
     this.table = table;
   }
 
-  getDocClient(): DynamoDBDocumentClient {
-    return this.docClient;
-  }
-
   put(params: any): Promise<any> {
     return this.docClient.send(
       new PutCommand({
@@ -40,6 +38,24 @@ export class DynamoService {
       new GetCommand({
         TableName: this.table,
         Key: params,
+      }),
+    );
+  }
+
+  scan(params: any): Promise<any> {
+    return this.docClient.send(
+      new ScanCommand({
+        TableName: this.table,
+        ...params,
+      }),
+    );
+  }
+
+  update(params: any): Promise<any> {
+    return this.docClient.send(
+      new UpdateCommand({
+        TableName: this.table,
+        ...params,
       }),
     );
   }

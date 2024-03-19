@@ -1,20 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import {
-  PutCommand,
-  GetCommand,
-  ScanCommand,
-  DeleteCommand,
-  UpdateCommand,
-} from '@aws-sdk/lib-dynamodb';
 import { customAlphabet } from 'nanoid';
+import { DynamoServiceFactory } from 'src/common/db/dynamo/dynamo.service.factory';
 import { DynamoService } from 'src/common/db/dynamo/dynamo.service';
 
 @Injectable()
 export class StatsService {
-  private readonly tableName = process.env.STATS_TABLE;
-  private readonly getDoc = this.dynamodbService.getDocClient();
+  private dynamoService: DynamoService;
 
-  constructor(private dynamodbService: DynamoService) {}
+  constructor(private dynamoServiceFactory: DynamoServiceFactory) {
+    this.dynamoService = this.dynamoServiceFactory.createDynamoService(
+      process.env.STATS_TABLE,
+    );
+  }
 
   private async createStat(linkId: string, platform: string): Promise<void> {
     const nanoid = customAlphabet(
@@ -25,45 +22,32 @@ export class StatsService {
 
     const createdAt = new Date().toISOString();
 
-    await this.getDoc.send(
-      new PutCommand({
-        TableName: this.tableName,
-        Item: {
-          id,
-          hits: 1,
-          createdAt,
-          linkId,
-          platform,
-          platformCreatedAtId: `${platform}-${linkId}`,
-        },
-      }),
-    );
+    await this.dynamoService.put({
+      id,
+      hits: 1,
+      createdAt,
+      linkId,
+      platform,
+      platformCreatedAtId: `${platform}-${linkId}`,
+    });
   }
 
   private async updateStat(id: string, platform: string): Promise<void> {
-    await this.getDoc.send(
-      new UpdateCommand({
-        TableName: this.tableName,
-        Key: { linkId: id, platformCreatedAtId: `${platform}-${id}` },
-        UpdateExpression: 'ADD hits :inc',
-        ExpressionAttributeValues: { ':inc': 1 },
-      }),
-    );
+    await this.dynamoService.update({
+      Key: { linkId: id, platformCreatedAtId: `${platform}-${id}` },
+      UpdateExpression: 'ADD hits :inc',
+      ExpressionAttributeValues: { ':inc': 1 },
+    });
   }
 
   async getUrlStat(
     linkId: string,
     platform: string,
   ): Promise<{ id: string; hits: number } | null> {
-    const result = await this.getDoc.send(
-      new GetCommand({
-        TableName: this.tableName,
-        Key: {
-          linkId,
-          platformCreatedAtId: `${platform}-${linkId}`,
-        },
-      }),
-    );
+    const result = await this.dynamoService.get({
+      linkId,
+      platformCreatedAtId: `${platform}-${linkId}`,
+    });
 
     const { id, hits } = result.Item ?? {};
 
@@ -88,21 +72,16 @@ export class StatsService {
   }
 
   async deleteStats(linkId: string): Promise<void> {
-    const findStats = await this.getDoc.send(
-      new ScanCommand({
-        TableName: this.tableName,
-        FilterExpression: 'linkId = :linkId',
-        ExpressionAttributeValues: { ':linkId': linkId },
-      }),
-    );
+    const findStats = await this.dynamoService.scan({
+      FilterExpression: 'linkId = :linkId',
+      ExpressionAttributeValues: { ':linkId': linkId },
+    });
 
     for (const stat of findStats.Items || []) {
-      await this.getDoc.send(
-        new DeleteCommand({
-          TableName: this.tableName,
-          Key: { linkId, platformCreatedAtId: stat.platformCreatedAtId },
-        }),
-      );
+      await this.dynamoService.delete({
+        linkId,
+        platformCreatedAtId: stat.platformCreatedAtId,
+      });
     }
   }
 }
