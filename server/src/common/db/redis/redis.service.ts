@@ -13,7 +13,11 @@ export class RedisService {
     return this.redis.get(key);
   }
 
-  async set(key: string, value: string): Promise<'OK'> {
-    return this.redis.set(key, value);
+  async set(key: string, value: string): Promise<string> {
+    return this.redis.set(key, value, 'EX', process.env.CACHE_EXPIRY_TIME);
+  }
+
+  async del(key: string): Promise<number> {
+    return this.redis.del(key);
   }
 }
