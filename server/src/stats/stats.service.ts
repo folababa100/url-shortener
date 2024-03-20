@@ -84,4 +84,18 @@ export class StatsService {
       });
     }
   }
+
+  async getStats(linkId: string): Promise<{ hits: number }> {
+    const findStats = await this.dynamoService.scan({
+      FilterExpression: 'linkId = :linkId',
+      ExpressionAttributeValues: { ':linkId': linkId },
+    });
+
+    const hits = findStats.Items?.reduce(
+      (acc, item) => acc + (item.hits || 0),
+      0,
+    );
+
+    return { hits };
+  }
 }

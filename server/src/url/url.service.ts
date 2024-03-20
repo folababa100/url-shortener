@@ -4,6 +4,7 @@ import { customAlphabet } from 'nanoid';
 import { StatsService } from '../stats/stats.service';
 import { DynamoServiceFactory } from 'src/common/db/dynamo/dynamo.service.factory';
 import { DynamoService } from 'src/common/db/dynamo/dynamo.service';
+import { RedisService } from 'src/common/db/redis/redis.service';
 
 @Injectable()
 export class UrlService {
@@ -16,6 +17,7 @@ export class UrlService {
   constructor(
     private statsService: StatsService,
     private dynamoServiceFactory: DynamoServiceFactory,
+    private redisService: RedisService,
   ) {
     this.dynamoService = this.dynamoServiceFactory.createDynamoService(
       process.env.LINK_TABLE,
@@ -36,6 +38,7 @@ export class UrlService {
 
   async getUrlAndIncrementStats(id: string, platform: string): Promise<string> {
     const result = await this.dynamoService.get({ id });
+    await this.redisService.set(id, 'true');
 
     const url = result.Item?.originalUrl;
     if (!url) throw new NotFoundException('URL not found');
@@ -50,14 +53,7 @@ export class UrlService {
     await this.statsService.deleteStats(id);
   }
 
-  async getUrlStats(id: string): Promise<{ hits: number; id: string }> {
-    const result = await this.dynamoService.get({ id });
-
-    const visitCount = result.Item?.visitCount;
-
-    if (visitCount) {
-      return { hits: visitCount, id };
-    }
-    return { hits: 0, id };
+  async getUrlStats(id: string): Promise<{ hits: number }> {
+    return await this.statsService.getStats(id);
   }
 }
